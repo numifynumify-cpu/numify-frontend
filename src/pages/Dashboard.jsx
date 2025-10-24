@@ -10,7 +10,9 @@ export default function Dashboard() {
   const [numbers, setNumbers] = useState([]);
   const evtSourceRef = useRef(null);
 
-  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+  // ✅ Use your live backend
+  const BACKEND_URL =
+    import.meta.env.VITE_BACKEND_URL || "https://numify-backend.onrender.com";
 
   // ✅ Check login + approval
   useEffect(() => {
@@ -82,7 +84,7 @@ export default function Dashboard() {
     alert("Scraper stopped");
   }
 
-  // ✅ Function to connect to EventSource (with auto reconnect)
+  // ✅ Connect to EventSource (live updates)
   async function connectEventStream(token) {
     const sseUrl = `${BACKEND_URL}/stream?token=${token}`;
     const es = new EventSource(sseUrl);
@@ -106,7 +108,7 @@ export default function Dashboard() {
     es.onerror = (err) => {
       console.error("⚠️ SSE connection lost. Reconnecting in 5s...", err);
       es.close();
-      setTimeout(() => connectEventStream(token), 5000); // 🔁 Auto reconnect
+      setTimeout(() => connectEventStream(token), 5000); // auto reconnect
     };
   }
 
