@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* center everything */
+html, body, #root {
+  height: 100%;
+}
