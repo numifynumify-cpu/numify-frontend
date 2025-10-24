@@ -4,8 +4,7 @@
   "private": true,
   "scripts": {
     "preinstall": "chmod +x ./node_modules/.bin/* || true",
-    "fix-permissions": "chmod +x ./node_modules/.bin/* || true",
-    "build": "npm run fix-permissions && vite build",
+    "build": "npm run preinstall && vite build",
     "dev": "vite",
     "preview": "vite preview"
   },
@@ -17,11 +16,15 @@
     "react-router-dom": "^6.23.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.3.0",
-    "autoprefixer": "^10.4.16",
-    "postcss": "^8.4.31",
-    "tailwindcss": "^3.4.3",
-    "vite": "^5.2.0"
+    "@vitejs/plugin-react": "4.3.0",
+    "autoprefixer": "10.4.16",
+    "postcss": "8.4.31",
+    "tailwindcss": "3.4.3",
+    "vite": "5.2.8",
+    "rollup": "4.18.0"
+  },
+  "engines": {
+    "node": "20.x"
   }
 }
 
