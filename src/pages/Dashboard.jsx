@@ -10,7 +10,7 @@ export default function Dashboard() {
   const [numbers, setNumbers] = useState([]);
   const evtSourceRef = useRef(null);
 
-  // ✅ Use your live backend
+  // ✅ Your live backend URL (Render)
   const BACKEND_URL =
     import.meta.env.VITE_BACKEND_URL || "https://numify-backend.onrender.com";
 
@@ -26,9 +26,11 @@ export default function Dashboard() {
 
       const docRef = doc(db, "users", u.uid);
       const snap = await getDoc(docRef);
+
       if (snap.exists()) {
         const d = snap.data();
         setApproved(!!d.approved);
+
         if (!d.approved) {
           alert("Your account is not approved yet. Please wait for admin approval.");
           window.location.href = "/subscribe";
@@ -37,7 +39,15 @@ export default function Dashboard() {
         window.location.href = "/";
       }
     });
-    return () => unsub();
+
+    // ✅ Cleanup on unmount (close EventSource)
+    return () => {
+      unsub();
+      if (evtSourceRef.current) {
+        evtSourceRef.current.close();
+        evtSourceRef.current = null;
+      }
+    };
   }, []);
 
   // ✅ Start scraping
@@ -45,57 +55,71 @@ export default function Dashboard() {
     if (!user) return;
     if (!liveUrl) return alert("Paste TikTok live URL");
 
-    const idToken = await getIdToken(user, true);
+    try {
+      const idToken = await getIdToken(user, true);
 
-    const res = await fetch(`${BACKEND_URL}/start`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${idToken}`,
-      },
-      body: JSON.stringify({ live_url: liveUrl }),
-    });
+      const res = await fetch(`${BACKEND_URL}/start`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ live_url: liveUrl }),
+      });
 
-    const j = await res.json();
-    if (!res.ok) {
-      alert(j.detail || j.message || "Error starting scraper");
-      return;
+      const j = await res.json();
+
+      if (!res.ok) {
+        console.error("Start failed:", j);
+        alert(j.detail || j.message || "Error starting scraper");
+        return;
+      }
+
+      // ✅ Connect to the SSE stream with token in query param
+      connectEventStream(idToken);
+    } catch (err) {
+      console.error("Start scrape error:", err);
+      alert("Failed to start scraper. Check console for details.");
     }
-
-    // ✅ Connect to the SSE stream with token in query param
-    connectEventStream(idToken);
   }
 
   // ✅ Stop scraping
   async function stopScrape() {
     if (!user) return;
-    const idToken = await getIdToken(user, true);
 
-    await fetch(`${BACKEND_URL}/stop`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${idToken}` },
-    });
+    try {
+      const idToken = await getIdToken(user, true);
 
-    if (evtSourceRef.current) {
-      evtSourceRef.current.close();
-      evtSourceRef.current = null;
+      await fetch(`${BACKEND_URL}/stop`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${idToken}` },
+      });
+
+      if (evtSourceRef.current) {
+        evtSourceRef.current.close();
+        evtSourceRef.current = null;
+      }
+
+      alert("Scraper stopped successfully");
+    } catch (err) {
+      console.error("Stop scrape error:", err);
+      alert("Failed to stop scraper. Check console for details.");
     }
-
-    alert("Scraper stopped");
   }
 
-  // ✅ Connect to EventSource (live updates)
-  async function connectEventStream(token) {
+  // ✅ Connect to EventSource (real-time updates)
+  function connectEventStream(token) {
     const sseUrl = `${BACKEND_URL}/stream?token=${token}`;
+    console.log("🔌 Connecting to stream:", sseUrl);
+
     const es = new EventSource(sseUrl);
     evtSourceRef.current = es;
-
-    console.log("🔌 Connected to stream:", sseUrl);
 
     es.onmessage = (e) => {
       try {
         const data = JSON.parse(e.data);
         console.log("📩 New number:", data);
+
         setNumbers((prev) => {
           if (prev.find((p) => p.number === data.number)) return prev;
           return [data, ...prev];
