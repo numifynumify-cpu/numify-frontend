@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "prebuild": "chmod +x node_modules/.bin/vite || true",
-    "build": "vite build",
+    "preinstall": "chmod +x ./node_modules/.bin/* || true",
+    "fix-permissions": "chmod +x ./node_modules/.bin/* || true",
+    "build": "npm run fix-permissions && vite build",
     "dev": "vite",
     "preview": "vite preview"
   },
